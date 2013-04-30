@@ -25,6 +25,10 @@ Inputs
 * list of **good** nodes, anything not listed in this will be regressed
   out  (**NOTE:** counting starts at 0)
 
+* How important is TR in this analysis? Is it worth looking at or combining
+  the TR 189's ?
+
+
 Main Tools
 ++++++++++
 
