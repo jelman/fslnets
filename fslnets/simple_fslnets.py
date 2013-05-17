@@ -52,7 +52,8 @@ def parse_idx(good, n):
     return good_idx, bad_idx
 
 def simple_regress(good, bad):
-    #grot1-xx*(pinv(xx)*grot1)
+    """ simple linear regression to regress bad components
+    from good components"""
     result = good - np.dot(bad,  np.dot(np.linalg.pinv(bad),good))
     return result
 
@@ -61,6 +62,7 @@ def remove_regress_bad_components(dat, good):
     good_ids, bad_ids = parse_idx(good, ncomponents)
     good_dat = dat[:,good_ids]
     bad_dat = dat[:,bad_ids]
+    return simple_regress(good_dat, bad_dat)
 
     
 
