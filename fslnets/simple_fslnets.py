@@ -72,4 +72,10 @@ def concat_subjects(subjects):
     concat.shape = (nsubs * ntimepts, ncomp)
     return concat
 
+def corrcoef(data):
+    """calcs the corrcoef for data with structure
+    (ntimepoints * nsub ) X ncomponents
+    Returns array : ncomponents X ncomponents"""
+    return np.corrcoef(data.T)
+
 
