@@ -50,12 +50,18 @@ def parse_idx(good, n):
         raise IOError('index issue %s not in range %s'%(good, all_idx))
     return good_idx, bad_idx
 
+def simple_regress(good, bad):
+    #grot1-xx*(pinv(xx)*grot1)
+    result = good - np.dot(bad,  np.dot(np.linalg.pinv(bad),good))
+    return result
 
-def remove_regress_bad_components(dat, good_idx):
-    good_idx = np.array(good_idx)
+def remove_regress_bad_components(dat, good):
+    ntimepoints, ncomponents = dat.shape
+    good_ids, bad_ids = parse_idx(good, ncomponents)
+    good_dat = dat[:,good_ids]
+    bad_dat = dat[:,bad_ids]
 
-    good = dat[:,good_idx]
-
+    
 
 
 
