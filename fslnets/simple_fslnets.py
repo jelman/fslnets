@@ -34,7 +34,8 @@ def normalise_data(dat):
     data is timepoints X components"""
     # demean each column
     tmp = (dat - dat.mean(0)) 
-    tmp = tmp / tmp.std()
+    tmp = tmp / tmp.std(ddof=1)
+    # std clced using ddof=1; 1/(n-1) * sum( (xi- mean(x))**2 )
     return tmp
 
 def parse_idx(good, n):
