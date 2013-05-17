@@ -26,9 +26,12 @@ reshape 1 X ncomponents x ncomponents
 
 import os
 from glob import glob
+import numpy as np
+
 
 def normalise_data(dat):
-    """ demans and divides by std"""
+    """ demans and divides by std
+    data is timepoints X components"""
     # demean each column
     tmp = (dat - dat.mean(0)) 
     tmp = tmp / tmp.std()
