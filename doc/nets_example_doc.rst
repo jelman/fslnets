@@ -34,7 +34,7 @@ Main Tools
 
 slices_summary tool
 -------------------
-
+    (Low priority, omly FSL 5.0+)
     This is a wrapper for a FSL tool that takes in the melodic_IC and 
     creates summary images (one for each component) for display of components
     (specifically for heirarchical clustering display of components)
@@ -54,8 +54,11 @@ net_load
         0=none, 
         
         1=normalise whole subject stddev, 
+          normalize all components at once for one subject 
+          (high priority and default)
         
         2=normalise each separate timeseries from each subject
+         (timeseries normalized individually)
 
     output is used in basically every other algorithm, preprocessing
 
