@@ -64,10 +64,12 @@ def remove_regress_bad_components(dat, good):
     bad_dat = dat[:,bad_ids]
     return simple_regress(good_dat, bad_dat)
 
-    
-
-
-
-
+def concat_subjects(subjects):
+    """turn a list of subject data arrays into one array"""
+    nsubs = len(subjects)
+    ntimepts, ncomp = subjects[0].shape
+    concat = np.array(subjects)
+    concat.shape = (nsubs * ntimepts, ncomp)
+    return concat
 
 
