@@ -106,6 +106,25 @@ def calc_arone(sdata):
     arone = np.sum(sdata[:,:,:-1] * sdata[:,:,1:], 2) / np.sum(sdata * sdata,2)
     return np.median(arone)
 
+def _calc_r2z_correction(sdata, arone):
+    nsub, ntimepts, nnodes = sdata.shape
+    null = np.zeros(sdata.shape)
+    null[:,0,:] = null[:,0, :] = np.random.randn(nsub , nnodes)
+    for i in range(ntimepts -1):
+        null[:,i+1,:] = null[:,i,:] * arone
+    null[:,1:,:] = null[:,1:,:] + np.random.randn(nsub, ntimepts-1, nnodes)
+    non_diag = np.empty((nsub, nnodes * nnodes - nnodes))
+    for sub, slice in enumerate(null):
+        tmpr = np.corrcoef(slice)
+        non_diag[sub] = tmpr[np.eye(nnodes) < 1]
+    tmpz =  0.5 * np.log( (1 + non_diag) / (1 - non_diag))
+    r_to_z_correct = 1.0 / tmpz.std()
+    return r_to_z_correct
 
+def r_to_z(subs_node_stat, sdata):
 
+    arone = calc_arone(sdata)
+    r_to_z_val = _null_data(sdata, arone)
+    zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) * r_to_z_val
+    return zdat
 

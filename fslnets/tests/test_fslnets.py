@@ -75,6 +75,11 @@ class TestFSLNets(TestCase):
         ## should raise error if data not 3d nsub X ntp X ncomponents
         assert_raises(IndexError, fsln.calc_arone,  self.data)
 
+    def test_calc_r2z_correction(self):
+        sdata = fsln.concat_subjects([self.data, self.data])
+        arone = fsln.calc_arone(sdata)
+        r2z_correction = fsln._calc_r2z_correction(sdata, arone)
+        assert_almost_equal(r2z_correction, 1.0, decimal = 0)
 
 if __name__ == '__main__':
     unittest.main()
