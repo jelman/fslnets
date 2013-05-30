@@ -18,6 +18,23 @@ ncomponents X ncomponents matrix
 (just_diag == 0)
 reshape 1 X ncomponents x ncomponents
 
+## TODO
+once data is cleaned, calc'd corrcoef, we can concatenate subjects
+
+option to create a subset of good components to run through randomise
+
+
+quick estimate of median AR(1) coeff
+use this to do a r2z transform
+(compare to Fischer Transform)
+
+save the result to a nifti images (requires reshape, and set aff etc)
+
+
+run randomise (consdier ways to parallelize this??)
+
+fdr correction and possibly give user summary of pvalues for each component
+(sorted)
 
 
 
@@ -58,6 +75,7 @@ def simple_regress(good, bad):
     return result
 
 def remove_regress_bad_components(dat, good):
+    """ returns timepoints by good components for this subject"""
     ntimepoints, ncomponents = dat.shape
     good_ids, bad_ids = parse_idx(good, ncomponents)
     good_dat = dat[:,good_ids]
