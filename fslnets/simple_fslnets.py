@@ -87,7 +87,7 @@ def concat_subjects(subjects):
     nsubs = len(subjects)
     ntimepts, ncomp = subjects[0].shape
     concat = np.array(subjects)
-    concat.shape = (nsubs * ntimepts, ncomp)
+    concat.shape = (nsubs , ntimepts, ncomp)
     return concat
 
 def corrcoef(data):
@@ -98,4 +98,14 @@ def corrcoef(data):
     res =  np.corrcoef(data.T)
     np.fill_diagonal(res, 0)
     return res
+
+def calc_arone(sdata):
+    """quick estimate of median AR(1) coefficient
+    across subjects concatenated data
+    nsub, ntimepoints X ncomponents"""
+    arone = np.sum(sdata[:,:,:-1] * sdata[:,:,1:], 2) / np.sum(sdata * sdata,2)
+    return np.median(arone)
+
+
+
 

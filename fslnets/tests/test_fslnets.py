@@ -56,8 +56,8 @@ class TestFSLNets(TestCase):
         tmp = [self.data, self.data]
         ntimepts, ncomp = self.data.shape
         concat = fsln.concat_subjects(tmp)
-        assert_equal(concat.shape, (2 * ntimepts, ncomp))
-        assert_equal(concat[:ntimepts,:], self.data)
+        assert_equal(concat.shape, (2, ntimepts, ncomp))
+        assert_equal(concat[0,:,:], self.data)
 
     def test_corrcoef(self):
         res = fsln.corrcoef(self.data)
@@ -67,6 +67,13 @@ class TestFSLNets(TestCase):
         expected = np.corrcoef(self.data.T)
         np.fill_diagonal(expected,0)
         assert_equal(res, expected)
+
+    def test_calc_arone(self):
+        sdata = fsln.concat_subjects([self.data, self.data])
+        arone = fsln.calc_arone(sdata)
+        assert_almost_equal(0.54891261, arone)
+        ## should raise error if data not 3d nsub X ntp X ncomponents
+        assert_raises(IndexError, fsln.calc_arone,  self.data)
 
 
 if __name__ == '__main__':
