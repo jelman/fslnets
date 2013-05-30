@@ -63,8 +63,9 @@ class TestFSLNets(TestCase):
         res = fsln.corrcoef(self.data)
         _, ncomp = self.data.shape
         assert_equal(res.shape, (ncomp, ncomp))
-        assert_equal(np.diag(res), np.ones(ncomp))
+        assert_equal(np.diag(res), np.zeros(ncomp))
         expected = np.corrcoef(self.data.T)
+        np.fill_diagonal(expected,0)
         assert_equal(res, expected)
 
 

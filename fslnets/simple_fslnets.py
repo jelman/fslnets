@@ -93,7 +93,9 @@ def concat_subjects(subjects):
 def corrcoef(data):
     """calcs the corrcoef for data with structure
     (ntimepoints * nsub ) X ncomponents
-    Returns array : ncomponents X ncomponents"""
-    return np.corrcoef(data.T)
-
+    Returns array : ncomponents X ncomponents
+    zeros diagonal"""
+    res =  np.corrcoef(data.T)
+    np.fill_diagonal(res, 0)
+    return res
 
