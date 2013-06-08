@@ -124,7 +124,7 @@ def _calc_r2z_correction(sdata, arone):
 def r_to_z(subs_node_stat, sdata):
 
     arone = calc_arone(sdata)
-    r_to_z_val = _null_data(sdata, arone)
+    r_to_z_val = _calc_r2z_correction(sdata, arone)
     zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) * r_to_z_val
     return zdat
 
