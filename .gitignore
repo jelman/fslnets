@@ -26,6 +26,8 @@ pip-log.txt
 .tox
 nosetests.xml
 
+# editor backups
+*.swp
 # Translations
 *.mo
 
