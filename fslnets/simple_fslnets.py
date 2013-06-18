@@ -107,9 +107,26 @@ def calc_arone(sdata):
     return np.median(arone)
 
 def _calc_r2z_correction(sdata, arone):
+    """ use the pre computed median auto regressive AR(1)
+    coefficinet to z-transform subjects data
+
+    Parameters
+    ----------
+    sdata : array
+        array of data (nsub X ntimepoints X nnodes)
+    arone : float
+        median AR(1) computer from subject data
+
+    Returns
+    -------
+
+    zdat : array
+        z transformed data
+    """
+    
     nsub, ntimepts, nnodes = sdata.shape
     null = np.zeros(sdata.shape)
-    null[:,0,:] = null[:,0, :] = np.random.randn(nsub , nnodes)
+    null[:,0,:]  = np.random.randn(nsub , nnodes)
     for i in range(ntimepts -1):
         null[:,i+1,:] = null[:,i,:] * arone
     null[:,1:,:] = null[:,1:,:] + np.random.randn(nsub, ntimepts-1, nnodes)
