@@ -115,13 +115,14 @@ def _calc_r2z_correction(sdata, arone):
     sdata : array
         array of data (nsub X ntimepoints X nnodes)
     arone : float
-        median AR(1) computer from subject data
+        median AR(1) computed from subject data
 
     Returns
     -------
 
-    zdat : array
-        z transformed data
+    r_to_z_correct : float
+        value used to z-transfom sdata
+        
     """
     
     nsub, ntimepts, nnodes = sdata.shape
@@ -139,9 +140,23 @@ def _calc_r2z_correction(sdata, arone):
     return r_to_z_correct
 
 def r_to_z(subs_node_stat, sdata):
+    """ calc and return ztransformed data
+
+    Parameters
+    ----------
+    subs_node_stat : array
+        subject summary stat data (eg correlation)
+        
+    
+    sdata : array
+        subject data (nsub X ntimepoints X nnodes)
+        used to calculate AR91) for z transform
+    """
+
 
     arone = calc_arone(sdata)
     r_to_z_val = _calc_r2z_correction(sdata, arone)
-    zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) * r_to_z_val
+    zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) \
+            * r_to_z_val
     return zdat
 
