@@ -13,7 +13,7 @@ class TestFSLNets(TestCase):
         prng = RandomState(42) # consistent pseudo random number generator
         self.data = prng.randn(10, 5)
         self.good = [0, 1, 2] 
-        
+
 
     def test_normalize_data(self):
         cleaned = fsln.normalise_data(self.data)
@@ -79,6 +79,31 @@ class TestFSLNets(TestCase):
         arone = fsln.calc_arone(sdata)
         r2z_correction = fsln._calc_r2z_correction(sdata, arone)
         assert_equal(r2z_correction > 0, True)
+
+    def test_cond_partial_cor(self):
+        # make correlated data
+        newdata = self.data.copy()
+        newdata[:,1] = newdata[:,0] + 0.1 * newdata[:,2]
+        pcorr = fsln._cond_partial_cor(newdata[:,:2], newdata[:,2:])
+        assert_equal(pcorr, 1.0)
+        pcorr = fsln._cond_partial_cor(newdata[:,:2])
+        assert_almost_equal(pcorr, 0.99531066,decimal=7 )
+
+    def test_partial_corr(self):
+        # make correlated data
+        newdata = self.data.copy()
+        newdata[:,1] = newdata[:,0] + 0.1 * newdata[:,2]
+        res = fsln.partial_corr(newdata) 
+        assert_equal(res.shape, (5,5))
+        assert_equal(res[0,0], 0) # diag is zeros
+        assert_equal(res[0,1] , 1.0) # perfect correl once conf regressed
+        assert_almost_equal(res[0,2], -1.000,decimal = 2) 
+        # neg correl once regressor removed
+
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
