@@ -44,7 +44,8 @@ fdr correction and possibly give user summary of pvalues for each component
 import os
 from glob import glob
 import numpy as np
-
+import itertools
+import scipy.linalg as linalg
 
 def normalise_data(dat):
     """ demans and divides by std
@@ -99,6 +100,47 @@ def corrcoef(data):
     np.fill_diagonal(res, 0)
     return res
 
+def partial_corr(data):
+    """ calcs partial correlation for data with structure
+    (ntimepoints X ncomponents)
+    zeros diagonal"""
+    timepts, ncomp = data.shape
+    all_pcorr = np.zeros((ncomp, ncomp))
+    allcond = set(np.arange(ncomp))
+    for a, b in itertools.combinations(allcond, 2):
+        xy = data[:,np.array([a,b])]
+        rest = allcond - set([a,b])
+        confounds = data[:, np.array([x for x in rest])]
+        part_corr = _cond_partial_cor(xy, confounds)
+        all_pcorr[a,b] = part_corr
+        all_pcorr[b,a] = part_corr
+    return all_pcorr
+
+
+def _cond_partial_cor(xy,  confounds=[]):
+    """ Returns the partial correlation of y and x, conditioning on
+    confounds.
+    
+    Parameters
+    -----------
+    xy : numpy array
+        num_timeponts X 2
+    confounds : numpy array
+        numtimepoints X nconfounds
+
+    Returns
+    -------
+    pcorr : float
+        partial correlation of x, y condioned on conf
+
+    """
+    if len(confounds):
+        res = linalg.lstsq(confounds, xy)
+        xy = xy - np.dot(confounds, res[0])
+
+    return np.dot(xy[:,0], xy[:,1]) / np.sqrt(np.dot(xy[:,1], xy[:,1]) \
+            *np.dot(xy[:,0], xy[:,0]))
+
 def calc_arone(sdata):
     """quick estimate of median AR(1) coefficient
     across subjects concatenated data
@@ -107,9 +149,27 @@ def calc_arone(sdata):
     return np.median(arone)
 
 def _calc_r2z_correction(sdata, arone):
+    """ use the pre computed median auto regressive AR(1)
+    coefficinet to z-transform subjects data
+
+    Parameters
+    ----------
+    sdata : array
+        array of data (nsub X ntimepoints X nnodes)
+    arone : float
+        median AR(1) computed from subject data
+
+    Returns
+    -------
+
+    r_to_z_correct : float
+        value used to z-transfom sdata
+        
+    """
+    
     nsub, ntimepts, nnodes = sdata.shape
     null = np.zeros(sdata.shape)
-    null[:,0,:] = null[:,0, :] = np.random.randn(nsub , nnodes)
+    null[:,0,:]  = np.random.randn(nsub , nnodes)
     for i in range(ntimepts -1):
         null[:,i+1,:] = null[:,i,:] * arone
     null[:,1:,:] = null[:,1:,:] + np.random.randn(nsub, ntimepts-1, nnodes)
@@ -122,9 +182,23 @@ def _calc_r2z_correction(sdata, arone):
     return r_to_z_correct
 
 def r_to_z(subs_node_stat, sdata):
+    """ calc and return ztransformed data
+
+    Parameters
+    ----------
+    subs_node_stat : array
+        subject summary stat data (eg correlation)
+        
+    
+    sdata : array
+        subject data (nsub X ntimepoints X nnodes)
+        used to calculate AR91) for z transform
+    """
+
 
     arone = calc_arone(sdata)
     r_to_z_val = _calc_r2z_correction(sdata, arone)
-    zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) * r_to_z_val
+    zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) \
+            * r_to_z_val
     return zdat
 
