@@ -60,3 +60,6 @@ reshaped_pcorr = concat_pcorr.reshape((nsubs, nnodes*nnodes))
 # Convert to z-scores with AR(1) correction
 z_corr = fslnets.r_to_z(reshaped_corr, concat_ts)
 z_pcorr = fslnets.r_to_z(reshaped_pcorr, concat_ts)
+
+corr_img = fslnets.save_img(z_corr, os.path.join(datadir, 'fslnets_corr4D.nii.gz'))
+pcorr_img = save_img(z_corr, os.path.join(datadir, 'fslnets_pcorr4D.nii.gz'))

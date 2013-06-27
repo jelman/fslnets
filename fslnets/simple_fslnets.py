@@ -46,6 +46,8 @@ from glob import glob
 import numpy as np
 import itertools
 import scipy.linalg as linalg
+from nipype.interfaces.base import CommandLine
+import nibabel as nib
 
 def normalise_data(dat):
     """ demans and divides by std
@@ -201,4 +203,29 @@ def r_to_z(subs_node_stat, sdata):
     zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) \
             * r_to_z_val
     return zdat
-
+    
+    
+def save_img(data, fname):
+    """
+    Save netmat to 4d nifti image
+    
+    Parameters
+    ----------
+    data : array
+        matrix of correlation metrics after r to z transform
+        (nsub X nnodes*nnodes)
+        
+    fname : string
+        name and path of output file to be saved
+    """
+    nnodes_sq = data.shape[1]
+    nsubs = data.shape[0]
+    dataT = data.T
+    data4D = dataT.reshape(nnodes_sq, 1, 1, nsubs)
+    img = nib.Nifti1Image(data4D, np.eye(4))
+    img.to_filename(fname)
+    return fname
+    
+    
+    
+    
