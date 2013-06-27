@@ -19,13 +19,17 @@ infile : string of filename containing subject's timeseries data
 
 """
 
-datadir = '/home/jagust/rsfmri_ica/data/OldICA_IC0_ecat_2mm_6fwhm_125.gica/dual_regress'
-subfile = '/home/jagust/rsfmri_ica/Spreadsheets/Filelists/OLDICA_5mm_125_orig_sublist.txt'
-goodics = [0,1,4,5,7,8,9,10,11,12,14,16,17,20,22,25,30,33]
+datadir = '/home/jagust/rsfmri_ica/data/OldYoung_All_6mm_IC40.gica/dual_regress'
+subfile = '/home/jagust/rsfmri_ica/Spreadsheets/Filelists/allsubs.txt'
+goodics = [0, 1, 2, 7, 9, 10, 11, 13, 15, 16, 17, 19, 20, 23, 26, 28] # Start at 0
+nois = [1, 2, 7, 9, 10, 11, 15, 16, 20, 23, 28] # Nodes of interest. Determines number of comparisons
+                                                # to correct for.
+
 with open(subfile, 'r') as f:
     sublist = f.read().splitlines()
 group_ts = {}   # Dictionary to hold timeseries of all subjects
-group_stats = []    # List to hold correlation matrices of all subjects
+group_corr = []    # List to hold correlation matrices of all subjects
+group_pcorr = []    # List to hold partial correlation matrices of all subjects
 for subj in sublist:
     infile = '_'.join(['dr_stage1', subj, 'and_confound_regressors_6mm'])
     data = np.loadtxt(os.path.join(datadir,infile), dtype='float')
@@ -34,18 +38,25 @@ for subj in sublist:
     # Regresses out components not listed in goodics
     clean_data = fslnets.remove_regress_bad_components(norm_data, goodics)
     nnodes = clean_data.shape[1]
-    # Calculate correlation matrix of all good components
-    node_stat = fslnets.corrcoef(clean_data)
-    reshaped_stat = node_stat.reshape((1, nnodes * nnodes))
+    # Calculate correlation and partial correlation matrices of all good components
+    corr_stat = fslnets.corrcoef(clean_data)
+    pcorr_stat = fslnets.partial_corr(clean_data)
+    # Reshape matrices to 1d shape (1 x number of nodes * number of nodes)
+    reshaped_corr = corr_stat.reshape((1, nnodes * nnodes))
+    reshaped_pcorr = pcorr_stat.reshape((1, nnodes * nnodes))    
     # Append subject data to group data
     group_ts[subj] = clean_data
-    group_stats.append(reshaped_stat)
+    group_corr.append(reshaped_corr)
+    group_pcorr.append(reshaped_pcorr)
 
 # Create concatenated matrix of subjects' timeseries data
-concat_ts = fslnets.concat_subjects(group_ts.values())
+concat_ts = fslnets.concat_subjects([group_ts[key] for key in sorted(group_ts.keys())])
 nsubs, ntimepts, nnodes = concat_ts.shape
-# Create concatenated matrix of subjects' corerlation matrices
-concat_stats = np.array(group_stats)
-reshaped_stats = concat_stats.reshape((nsubs, nnodes*nnodes))
+# Create concatenated matrix of subjects' correlation matrices
+concat_corr = np.array(group_corr)
+reshaped_corr = concat_corr.reshape((nsubs, nnodes*nnodes))
+concat_pcorr = np.array(group_pcorr)
+reshaped_pcorr = concat_pcorr.reshape((nsubs, nnodes*nnodes))
 # Convert to z-scores with AR(1) correction
-zdat = fslnets.r_to_z(reshaped_stats, concat_ts)
+z_corr = fslnets.r_to_z(reshaped_corr, concat_ts)
+z_pcorr = fslnets.r_to_z(reshaped_pcorr, concat_ts)
