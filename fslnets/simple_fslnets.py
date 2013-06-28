@@ -48,6 +48,8 @@ import itertools
 import scipy.linalg as linalg
 from nipype.interfaces.base import CommandLine
 import nibabel as nib
+import statsmodels.stats.multitest as smm
+import nipype.interfaces.fsl as fsl
 
 def normalise_data(dat):
     """ demans and divides by std
@@ -226,6 +228,29 @@ def save_img(data, fname):
     img.to_filename(fname)
     return fname
     
+def load_img(infile):
+    img = nib.load(infile)
+    dat = img.get_data()
+    nnodes = int(np.sqrt(dat.shape[0]))
+    square_dat = dat.reshape((nnodes,nnodes))
+    return square_dat
     
-    
+def randomise(infile, outname, des_file, con_file):        
+    cmd = ' '.join(['randomise -i %s'%(infile),
+                    '-o %s'%(outname),
+                    '-d %s'%(des_file),
+                    '-t %s'%(con_file),
+                    '-x -n 5000'])
+    cout = CommandLine(cmd).run()
+    if not cout.runtime.returncode == 0:
+        print cout.runtime.stderr
+        return None
+    else:
+        globstr = ''.join([outname, '_vox_p_tstat*'])
+        p_uncorrected = glob(globstr)
+        globstr = ''.join([outname, '_vox_corrp_tstat*'])
+        p_corrected = glob(globstr)
+        return p_uncorrected, p_corrected
+        
+
     
