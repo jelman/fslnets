@@ -51,6 +51,61 @@ import nibabel as nib
 import statsmodels.stats.multitest as smm
 import nipype.interfaces.fsl as fsl
 
+
+def make_dir(root, name = 'temp'):
+    """ generate dirname string
+    check if directory exists
+    return exists, dir_string
+    """
+    outdir = os.path.join(root, name)
+    exists = False
+    if os.path.isdir(outdir):
+        exists = True
+    else:
+        os.mkdir(outdir)
+    return exists, outdir
+
+
+def split_filename(fname):
+    """split a filename into component parts
+
+    Parameters
+    ----------
+    fname : str
+        file or path name
+
+    Returns
+    -------
+    pth : str
+        base path of fname
+    name : str
+        name from fname without extension
+    ext : str
+        file extension from fname
+
+    Examples
+    --------
+    >>> from filefun import split_filename
+    >>> pth, name, ext = split_filename('/home/jagust/cindeem/test.nii.gz')
+    >>> pth
+    '/home/jagust/cindeem'
+
+    >>> name
+    'test'
+
+    >>> ext
+    'nii.gz'
+
+    """
+    pth, name = os.path.split(fname)
+    tmp = '.none'
+    ext = []
+    while tmp:
+        name, tmp = os.path.splitext(name)
+        ext.append(tmp)
+    ext.reverse()
+    return pth, name, ''.join(ext)
+    
 def normalise_data(dat):
     """ demans and divides by std
     data is timepoints X components"""
@@ -248,64 +303,11 @@ def randomise(infile, outname, design_file, contrast_file):
         print cout.runtime.stderr
         return None
     else:
-        globstr = ''.join([outname, '_vox_p_tstat*'])
+        globstr = ''.join([outname, '_vox_p_tstat*.nii.gz'])
         p_uncorrected = glob(globstr)
-        globstr = ''.join([outname, '_vox_corrp_tstat*'])
+        globstr = ''.join([outname, '_vox_corrp_tstat*.nii.gz'])
         p_corrected = glob(globstr)
         return p_uncorrected, p_corrected
-
-def make_dir(root, name = 'temp'):
-    """ generate dirname string
-    check if directory exists
-    return exists, dir_string
-    """
-    outdir = os.path.join(root, name)
-    exists = False
-    if os.path.isdir(outdir):
-        exists = True
-    else:
-        os.mkdir(outdir)
-    return exists, outdir
-
-def split_filename(fname):
-    """split a filename into component parts
-
-    Parameters
-    ----------
-    fname : str
-        file or path name
-
-    Returns
-    -------
-    pth : str
-        base path of fname
-    name : str
-        name from fname without extension
-    ext : str
-        file extension from fname
-
-    Examples
-    --------
-    >>> from filefun import split_filename
-    >>> pth, name, ext = split_filename('/home/jagust/cindeem/test.nii.gz')
-    >>> pth
-    '/home/jagust/cindeem'
-
-    >>> name
-    'test'
-
-    >>> ext
-    'nii.gz'
-
-    """
-    pth, name = os.path.split(fname)
-    tmp = '.none'
-    ext = []
-    while tmp:
-        name, tmp = os.path.splitext(name)
-        ext.append(tmp)
-    ext.reverse()
-    return pth, name, ''.join(ext)
 
 
 def get_results(randomise_outputs):  
@@ -322,5 +324,7 @@ def get_results(randomise_outputs):
         conname = ''.join(['contrast', str(i+1)])
         results[conname] = data_pval
     return results
+    
+    
 #def run_glm(data, fname, design_file, contrast_file):
   
