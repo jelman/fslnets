@@ -204,8 +204,8 @@ def r_to_z(subs_node_stat, sdata):
     r_to_z_val = _calc_r2z_correction(sdata, arone)
     zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) \
             * r_to_z_val
-    return zdat
-    
+    return zdat  
+
     
 def save_img(data, fname):
     """
@@ -228,18 +228,20 @@ def save_img(data, fname):
     img.to_filename(fname)
     return fname
     
+    
 def load_img(infile):
     img = nib.load(infile)
     dat = img.get_data()
     nnodes = int(np.sqrt(dat.shape[0]))
     square_dat = dat.reshape((nnodes,nnodes))
     return square_dat
+  
     
-def randomise(infile, outname, des_file, con_file):        
+def randomise(infile, outname, design_file, contrast_file):        
     cmd = ' '.join(['randomise -i %s'%(infile),
                     '-o %s'%(outname),
-                    '-d %s'%(des_file),
-                    '-t %s'%(con_file),
+                    '-d %s'%(design_file),
+                    '-t %s'%(contrast_file),
                     '-x -n 5000'])
     cout = CommandLine(cmd).run()
     if not cout.runtime.returncode == 0:
@@ -251,6 +253,74 @@ def randomise(infile, outname, des_file, con_file):
         globstr = ''.join([outname, '_vox_corrp_tstat*'])
         p_corrected = glob(globstr)
         return p_uncorrected, p_corrected
-        
 
-    
+def make_dir(root, name = 'temp'):
+    """ generate dirname string
+    check if directory exists
+    return exists, dir_string
+    """
+    outdir = os.path.join(root, name)
+    exists = False
+    if os.path.isdir(outdir):
+        exists = True
+    else:
+        os.mkdir(outdir)
+    return exists, outdir
+
+def split_filename(fname):
+    """split a filename into component parts
+
+    Parameters
+    ----------
+    fname : str
+        file or path name
+
+    Returns
+    -------
+    pth : str
+        base path of fname
+    name : str
+        name from fname without extension
+    ext : str
+        file extension from fname
+
+    Examples
+    --------
+    >>> from filefun import split_filename
+    >>> pth, name, ext = split_filename('/home/jagust/cindeem/test.nii.gz')
+    >>> pth
+    '/home/jagust/cindeem'
+
+    >>> name
+    'test'
+
+    >>> ext
+    'nii.gz'
+
+    """
+    pth, name = os.path.split(fname)
+    tmp = '.none'
+    ext = []
+    while tmp:
+        name, tmp = os.path.splitext(name)
+        ext.append(tmp)
+    ext.reverse()
+    return pth, name, ''.join(ext)
+
+
+def get_results(randomise_outputs):  
+    results = {}  
+    for i in range(len(randomise_outputs)):
+        pth, fname, ext = split_filename(randomise_outputs[i])
+        data_1minuspval = load_img(randomise_outputs[i])
+        data_pval = 1 - data_1minuspval
+        outfile = os.path.join(pth, fname + '.txt')
+        np.savetxt(outfile, 
+                    data_pval, fmt='%1.3f', 
+                    delimiter='\t')  
+        print('p value matrix saved to %s'%(outfile))
+        conname = ''.join(['contrast', str(i+1)])
+        results[conname] = data_pval
+    return results
+#def run_glm(data, fname, design_file, contrast_file):
+  
