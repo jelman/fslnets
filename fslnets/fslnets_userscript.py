@@ -112,7 +112,7 @@ if __name__ == '__main__':
                         fdr_results[conname], 
                         fmt='%1.3f', 
                         delimiter='\t')  
-            print('Saved corrected output to %s'%(outfile)
+            print('Saved corrected output to %s'%(outfile))
 
         
         
