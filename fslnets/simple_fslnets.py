@@ -46,7 +46,66 @@ from glob import glob
 import numpy as np
 import itertools
 import scipy.linalg as linalg
+from nipype.interfaces.base import CommandLine
+import nibabel as nib
+import statsmodels.stats.multitest as smm
+import nipype.interfaces.fsl as fsl
 
+
+def make_dir(root, name = 'temp'):
+    """ generate dirname string
+    check if directory exists
+    return exists, dir_string
+    """
+    outdir = os.path.join(root, name)
+    exists = False
+    if os.path.isdir(outdir):
+        exists = True
+    else:
+        os.mkdir(outdir)
+    return exists, outdir
+
+
+def split_filename(fname):
+    """split a filename into component parts
+
+    Parameters
+    ----------
+    fname : str
+        file or path name
+
+    Returns
+    -------
+    pth : str
+        base path of fname
+    name : str
+        name from fname without extension
+    ext : str
+        file extension from fname
+
+    Examples
+    --------
+    >>> from filefun import split_filename
+    >>> pth, name, ext = split_filename('/home/jagust/cindeem/test.nii.gz')
+    >>> pth
+    '/home/jagust/cindeem'
+
+    >>> name
+    'test'
+
+    >>> ext
+    'nii.gz'
+
+    """
+    pth, name = os.path.split(fname)
+    tmp = '.none'
+    ext = []
+    while tmp:
+        name, tmp = os.path.splitext(name)
+        ext.append(tmp)
+    ext.reverse()
+    return pth, name, ''.join(ext)
+    
 def normalise_data(dat):
     """ demans and divides by std
     data is timepoints X components"""
@@ -200,5 +259,112 @@ def r_to_z(subs_node_stat, sdata):
     r_to_z_val = _calc_r2z_correction(sdata, arone)
     zdat = 0.5 * np.log(( 1 + subs_node_stat) / (1 - subs_node_stat)) \
             * r_to_z_val
-    return zdat
+    return zdat  
 
+    
+def save_img(data, fname):
+    """
+    Save netmat to 4d nifti image
+    
+    Parameters
+    ----------
+    data : array
+        matrix of correlation metrics after r to z transform
+        (nsub X nnodes*nnodes)
+        
+    fname : string
+        name and path of output file to be saved
+    """
+    nnodes_sq = data.shape[1]
+    nsubs = data.shape[0]
+    dataT = data.T
+    data4D = dataT.reshape(nnodes_sq, 1, 1, nsubs)
+    img = nib.Nifti1Image(data4D, np.eye(4))
+    img.to_filename(fname)
+    return fname
+    
+    
+def load_rand_img(infile):
+    img = nib.load(infile)
+    dat = img.get_data()
+    nnodes = int(np.sqrt(dat.shape[0]))
+    square_dat = dat.reshape((nnodes,nnodes))
+    return square_dat
+  
+    
+def randomise(infile, outname, design_file, contrast_file):        
+    cmd = ' '.join(['randomise -i %s'%(infile),
+                    '-o %s'%(outname),
+                    '-d %s'%(design_file),
+                    '-t %s'%(contrast_file),
+                    '-x -n 5000'])
+    cout = CommandLine(cmd).run()
+    if not cout.runtime.returncode == 0:
+        print cout.runtime.stderr
+        return None
+    else:
+        globstr = ''.join([outname, '_vox_p_tstat*.nii.gz'])
+        p_uncorrected = glob(globstr)
+        globstr = ''.join([outname, '_vox_corrp_tstat*.nii.gz'])
+        p_corrected = glob(globstr)
+        return p_uncorrected, p_corrected
+
+
+def get_results(randomise_outputs):  
+    results = {}  
+    for i in range(len(randomise_outputs)):
+        pth, fname, ext = split_filename(randomise_outputs[i])
+        data_1minuspval = load_rand_img(randomise_outputs[i])
+        data_pval = 1 - data_1minuspval
+        np.fill_diagonal(data_pval, 0)
+        outfile = os.path.join(pth, fname + '.txt')
+        np.savetxt(outfile, 
+                    data_pval, 
+                    fmt='%1.3f', 
+                    delimiter='\t')  
+        print('p value matrix saved to %s'%(outfile))
+        conname = ''.join(['contrast', str(i+1)])
+        results[conname] = data_pval
+    return results
+
+
+    
+def multi_correct(data, noi_idx, meth='fdr_bh'):
+    """
+    Run fdr correction on nodes of interest contained in an array of p values. 
+    
+    Parameters:
+    -----------
+    data : numpy array
+        nnodes x nnodes array containing p values of correlation between each node
+    noi_idx : numpy
+        indices (applicable to both row and column) of nodes of interest. This
+        reduces the number of nodes corrected for
+    meth : str
+        Method of correction. Options are: 
+            `bonferroni` : one-step correction
+            `sidak` : on-step correction
+            `holm-sidak` :
+            `holm` :
+            `simes-hochberg` :
+            `hommel` :
+            `fdr_bh` : Benjamini/Hochberg (default)
+            `fdr_by` : Benjamini/Yekutieli 
+    
+    Returns:
+    ----------
+    fdr_corrected : numpy array
+        nnodes x nnodes array containing p values corrected with fdr (
+    """
+    noi_data = data[np.ix_(noi_idx,noi_idx)]
+    noi_upper = np.triu(noi_data, k=1)
+    upper_rows, upper_cols  = np.triu_indices_from(noi_data, k=1)
+    masked_upper = noi_upper[np.ma.nonzero(noi_upper)].ravel()
+    rej, corrp, alpha_sidak, alpha_bonnf = smm.multipletests(masked_upper, 
+                                                            alpha=0.05, 
+                                                            method=meth)
+    fdr_corr_array = np.zeros((len(noi_idx),len(noi_idx)))
+    for i in range(len(corrp)):
+        fdr_corr_array[upper_rows[i],upper_cols[i]] = corrp[i]
+    return fdr_corr_array + fdr_corr_array.T
+  
