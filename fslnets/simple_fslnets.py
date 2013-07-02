@@ -284,7 +284,7 @@ def save_img(data, fname):
     return fname
     
     
-def load_img(infile):
+def load_rand_img(infile):
     img = nib.load(infile)
     dat = img.get_data()
     nnodes = int(np.sqrt(dat.shape[0]))
@@ -314,7 +314,7 @@ def get_results(randomise_outputs):
     results = {}  
     for i in range(len(randomise_outputs)):
         pth, fname, ext = split_filename(randomise_outputs[i])
-        data_1minuspval = load_img(randomise_outputs[i])
+        data_1minuspval = load_rand_img(randomise_outputs[i])
         data_pval = 1 - data_1minuspval
         np.fill_diagonal(data_pval, 0)
         outfile = os.path.join(pth, fname + '.txt')
@@ -326,8 +326,10 @@ def get_results(randomise_outputs):
         conname = ''.join(['contrast', str(i+1)])
         results[conname] = data_pval
     return results
+
+
     
-def fdr_correct(data, noi_idx):
+def multi_correct(data, noi_idx, meth='fdr_bh'):
     """
     Run fdr correction on nodes of interest contained in an array of p values. 
     
@@ -338,20 +340,31 @@ def fdr_correct(data, noi_idx):
     noi_idx : numpy
         indices (applicable to both row and column) of nodes of interest. This
         reduces the number of nodes corrected for
+    meth : str
+        Method of correction. Options are: 
+            `bonferroni` : one-step correction
+            `sidak` : on-step correction
+            `holm-sidak` :
+            `holm` :
+            `simes-hochberg` :
+            `hommel` :
+            `fdr_bh` : Benjamini/Hochberg (default)
+            `fdr_by` : Benjamini/Yekutieli 
     
     Returns:
     ----------
     fdr_corrected : numpy array
-    
+        nnodes x nnodes array containing p values corrected with fdr (
     """
     noi_data = data[np.ix_(noi_idx,noi_idx)]
     noi_upper = np.triu(noi_data, k=1)
     upper_rows, upper_cols  = np.triu_indices_from(noi_data, k=1)
     masked_upper = noi_upper[np.ma.nonzero(noi_upper)].ravel()
-    rej, pval_corrected = smm.fdrcorrection(masked_upper, alpha=0.05, method='indep')
+    rej, corrp, alpha_sidak, alpha_bonnf = smm.multipletests(masked_upper, 
+                                                            alpha=0.05, 
+                                                            method=meth)
     fdr_corr_array = np.zeros((len(noi_idx),len(noi_idx)))
-    for i in range(len(pval_corrected)):
-        dr_corr_array[upper_rows[i],upper_cols[i]] = pval_corrected[i]
-
-#def run_glm(data, fname, design_file, contrast_file):
+    for i in range(len(corrp)):
+        fdr_corr_array[upper_rows[i],upper_cols[i]] = corrp[i]
+    return fdr_corr_array + fdr_corr_array.T
   
