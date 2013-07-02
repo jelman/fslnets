@@ -285,6 +285,21 @@ def save_img(data, fname):
     
     
 def load_rand_img(infile):
+    """
+    Loads nifti image output by randomise. Convert to numpy array and reshapes
+    from 1D to nnodes x nnodes (nnodes = sqrt(1D))
+    
+    Parameters:
+    -----------
+    infile : str
+        path to nifti file output by randomise
+    
+    Returns:
+    --------
+    square_dat : array
+        nnodes x nnodes array containing 1 - p values
+    """
+    
     img = nib.load(infile)
     dat = img.get_data()
     nnodes = int(np.sqrt(dat.shape[0]))
@@ -292,7 +307,31 @@ def load_rand_img(infile):
     return square_dat
   
     
-def randomise(infile, outname, design_file, contrast_file):        
+def randomise(infile, outname, design_file, contrast_file):   
+    """
+    Runs fsl randomise and returns list of outputs
+    
+    Parameters:
+    ----------
+    infile : str
+        4d nifti file containing subject data concatenated over time
+    outname : str
+        base name for putput
+    design_file : str
+        fsl group design file (.mat)
+    contrast_file : str
+        fsl contrast file (.con)
+        
+    Returns:
+    ---------
+    p_uncorrected : list
+        paths to randomise outputs (nifti) containing uncorrected 1 - p values.
+        one file per contrast (ex. *vox_p_tstat1.nii.gz)
+    p_corrected : list
+        list of randomise outputs (nifti) containing corrected 1 - p values      
+        one file per contrast  (ex. *vox_corrp_tstat1.nii.gz)
+    """
+         
     cmd = ' '.join(['randomise -i %s'%(infile),
                     '-o %s'%(outname),
                     '-d %s'%(design_file),
@@ -311,6 +350,24 @@ def randomise(infile, outname, design_file, contrast_file):
 
 
 def get_results(randomise_outputs):  
+    """
+    Takes a list of randomise image outputs and loads them into a 
+    dictionary containing numpy array for further processing
+    
+    Parameters:
+    -----------
+    randomise_outputs : list
+        list of files output by randomise (ex. *vox_p_tstat1.nii.gz)
+    
+    Returns:
+    --------
+    results : dict
+        key = contrast name (ex. 'contrast1')
+        value = nnodes x nnodes numpy array containing 1 - p values 
+                of group comparison output by randomise
+    
+    """
+    
     results = {}  
     for i in range(len(randomise_outputs)):
         pth, fname, ext = split_filename(randomise_outputs[i])
