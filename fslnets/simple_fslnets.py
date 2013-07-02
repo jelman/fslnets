@@ -316,15 +316,42 @@ def get_results(randomise_outputs):
         pth, fname, ext = split_filename(randomise_outputs[i])
         data_1minuspval = load_img(randomise_outputs[i])
         data_pval = 1 - data_1minuspval
+        np.fill_diagonal(data_pval, 0)
         outfile = os.path.join(pth, fname + '.txt')
         np.savetxt(outfile, 
-                    data_pval, fmt='%1.3f', 
+                    data_pval, 
+                    fmt='%1.3f', 
                     delimiter='\t')  
         print('p value matrix saved to %s'%(outfile))
         conname = ''.join(['contrast', str(i+1)])
         results[conname] = data_pval
     return results
     
+def fdr_correct(data, noi_idx):
+    """
+    Run fdr correction on nodes of interest contained in an array of p values. 
     
+    Parameters:
+    -----------
+    data : numpy array
+        nnodes x nnodes array containing p values of correlation between each node
+    noi_idx : numpy
+        indices (applicable to both row and column) of nodes of interest. This
+        reduces the number of nodes corrected for
+    
+    Returns:
+    ----------
+    fdr_corrected : numpy array
+    
+    """
+    noi_data = data[np.ix_(noi_idx,noi_idx)]
+    noi_upper = np.triu(noi_data, k=1)
+    upper_rows, upper_cols  = np.triu_indices_from(noi_data, k=1)
+    masked_upper = noi_upper[np.ma.nonzero(noi_upper)].ravel()
+    rej, pval_corrected = smm.fdrcorrection(masked_upper, alpha=0.05, method='indep')
+    fdr_corr_array = np.zeros((len(noi_idx),len(noi_idx)))
+    for i in range(len(pval_corrected)):
+        dr_corr_array[upper_rows[i],upper_cols[i]] = pval_corrected[i]
+
 #def run_glm(data, fname, design_file, contrast_file):
   
